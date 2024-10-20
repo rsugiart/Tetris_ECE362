@@ -7,20 +7,21 @@ name = 'background'
 # Initialize to zero
 arr = [ [0 for x in range(0,height)] for y in range(0,width) ]
 
-
+border = 20
 black = 0x0000
 white = 0xffff
 
 # Make a checkerboard with green boundaries
 for x in range(0, width):
   for y in range(0, height):
-    arr[x][y] = black
-    # if x < border or x >= width-border:
-    #   arr[x][y] = green
-    #   continue
-    # if y < border or y >= height-border:
-    #   arr[x][y] = green
-    #   continue
+    if x < border or x >= width-border:
+      arr[x][y] = white
+      continue
+    if y >= height-border: #or y >border
+      arr[x][y] = white
+      continue
+    else:
+      arr[x][y] = black
     # if (x // 20) % 2 == 0:
     #   if (y // 20) % 2 == 0:
     #     arr[x][y] = black

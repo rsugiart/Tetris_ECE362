@@ -17,6 +17,8 @@ const char* username = "jiang857";
 
 #include "stm32f0xx.h"
 #include <stdint.h>
+//#include "../graphics/background.c"
+#include "lcd.h"
 
 void internal_clock();
 
@@ -54,14 +56,16 @@ void init_usart5() {
 
 #ifdef STEP1
 int main(void){
-    internal_clock();
-    init_usart5();
-    for(;;) {
-        while (!(USART5->ISR & USART_ISR_RXNE)) { }
-        char c = USART5->RDR;
-        while(!(USART5->ISR & USART_ISR_TXE)) { }
-        USART5->TDR = c;
-    }
+    LCD_Setup();
+    //LCD_DrawPicture(0,0, &background);
+    // internal_clock();
+    // init_usart5();
+    // for(;;) {
+    //     while (!(USART5->ISR & USART_ISR_RXNE)) { }
+    //     char c = USART5->RDR;
+    //     while(!(USART5->ISR & USART_ISR_TXE)) { }
+    //     USART5->TDR = c;
+    // }
 }
 #endif
 
@@ -161,6 +165,17 @@ int main() {
 char serfifo[FIFOSIZE];
 int seroffset = 0;
 
+void init_spi1_slow(){
+    
+}
+
+void init_lcd_spi(){
+    RCC->AHBENR |= RCC_AHBENR_GPIOB;
+    GPIOB->MODER &= ~(0x30C30000);
+    GPIOB->MODER |= 0x10410000; //SET PB8, PB11, PB14 AS GPIO OUTPUTS
+    init_spi1_slow();
+}
+
 void enable_tty_interrupt(void) {
     // TODO
 
@@ -226,23 +241,26 @@ void USART3_8_IRQHandler(void) {
         seroffset = (seroffset + 1) % sizeof serfifo;
     }
 }
-
+//step 4 main
+extern const Picture background; // A 240x320 background image
 int main() {
-    internal_clock();
-    init_usart5();
-    enable_tty_interrupt();
+    LCD_Setup();
+    LCD_DrawPicture(0,0,&background);
+    // internal_clock();
+    // init_usart5();
+    // enable_tty_interrupt();
 
-    setbuf(stdin,0); // These turn off buffering; more efficient, but makes it hard to explain why first 1023 characters not dispalyed
-    setbuf(stdout,0);
-    setbuf(stderr,0);
-    printf("Enter your name: "); // Types name but shouldn't echo the characters; USE CTRL-J to finish
-    char name[80];
-    fgets(name, 80, stdin);
-    printf("Your name is %s", name);
-    printf("Type any characters.\n"); // After, will type TWO instead of ONE
-    for(;;) {
-        char c = getchar();
-        putchar(c);
-    }
+    // setbuf(stdin,0); // These turn off buffering; more efficient, but makes it hard to explain why first 1023 characters not dispalyed
+    // setbuf(stdout,0);
+    // setbuf(stderr,0);
+    // printf("Enter your name: "); // Types name but shouldn't echo the characters; USE CTRL-J to finish
+    // char name[80];
+    // fgets(name, 80, stdin);
+    // printf("Your name is %s", name);
+    // printf("Type any characters.\n"); // After, will type TWO instead of ONE
+    // for(;;) {
+    //     char c = getchar();
+    //     putchar(c);
+    // }
 }
 #endif
