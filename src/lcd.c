@@ -336,9 +336,27 @@ void LCD_Init(void (*reset)(int), void (*select)(int), void (*reg_select)(int))
     lcddev.select(0);
 }
 
-__attribute((weak)) void init_lcd_spi(void)
-{
-    printf("init_lcd_spi() not defined.");
+// __attribute((weak)) void init_lcd_spi(void)
+// {
+//     printf("init_lcd_spi() not defined.");
+// }
+
+void init_spi1_slow(){
+    SPI1 -> CR1 &= ~SPI_CR1_SPE;
+    SPI1 -> CR1 |= SPI_CR1_BR | SPI_CR1_MSTR;
+    SPI1 -> CR2 |= SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+    SPI1 -> CR1 |= SPI_CR1_SSM;
+    SPI1 -> CR1 |= SPI_CR1_SSI;
+    SPI1 -> CR2 |= SPI_CR2_FRXTH;
+    SPI1 -> CR1 |= SPI_CR1_SPE;
+
+}
+
+void init_lcd_spi(){
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+    GPIOB->MODER &= ~(0x30C30000);
+    GPIOB->MODER |= 0x10410000; //SET PB8, PB11, PB14 AS GPIO OUTPUTS
+    init_spi1_slow();
 }
 
 void LCD_Setup() {
