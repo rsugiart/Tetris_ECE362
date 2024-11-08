@@ -4,11 +4,8 @@
 //============================================================================
 
 #include "stm32f0xx.h"
-#include <stdio.h>
 #include <stdint.h>
 #include "lcd.h"
-
-void nano_wait(int t);
 
 lcd_dev_t lcddev;
 
@@ -32,7 +29,8 @@ lcd_dev_t lcddev;
 static void tft_select(int val)
 {
     if (val == 0) {
-        while(SPI1->SR & SPI_SR_BSY);
+        while(SPI1->SR & SPI_SR_BSY)
+            ;
         CS_HIGH;
     } else {
         while((GPIOB->ODR & (CS_BIT)) == 0) {
@@ -68,6 +66,15 @@ static void tft_reg_select(int val)
     }
 }
 
+//============================================================================
+// Wait for n nanoseconds. (Maximum: 4.294 seconds)
+//============================================================================
+static inline void nano_wait(unsigned int n) {
+    asm(    "        mov r0,%0\n"
+            "repeat: sub r0,#83\n"
+            "        bgt repeat\n" : : "r"(n) : "r0", "cc");
+}
+
 void LCD_Reset(void)
 {
     lcddev.reset(1);      // Assert reset
@@ -101,7 +108,7 @@ void SPI_WriteByte(uint8_t Data)
 {
     while((SPI->SR & SPI_SR_TXE) == 0)
         ;
-    *((volatile uint8_t*)&SPI->DR) = Data;
+    *((uint8_t*)&SPI->DR) = Data;
 }
 
 // Write to an LCD "register"
@@ -145,7 +152,7 @@ void LCD_WR_REG(uint8_t data)
         ;
     // Don't clear RS until the previous operation is done.
     lcddev.reg_select(1);
-    *((volatile uint8_t*)&SPI->DR) = data;
+    *((uint8_t*)&SPI->DR) = data;
 }
 
 // Write 8-bit data to the LCD
@@ -155,7 +162,7 @@ void LCD_WR_DATA(uint8_t data)
         ;
     // Don't set RS until the previous operation is done.
     lcddev.reg_select(0);
-    *((volatile uint8_t*)&SPI->DR) = data;
+    *((uint8_t*)&SPI->DR) = data;
 }
 
 // Prepare to write 16-bit data to the LCD
@@ -168,7 +175,8 @@ void LCD_WriteData16_Prepare()
 // Write 16-bit data
 void LCD_WriteData16(u16 data)
 {
-    while((SPI->SR & SPI_SR_TXE) == 0);
+    while((SPI->SR & SPI_SR_TXE) == 0)
+        ;
     SPI->DR = data;
 }
 
@@ -336,12 +344,8 @@ void LCD_Init(void (*reset)(int), void (*select)(int), void (*reg_select)(int))
     lcddev.select(0);
 }
 
-// __attribute((weak)) void init_lcd_spi(void)
-// {
-//     printf("init_lcd_spi() not defined.");
-// }
-
 void init_spi1_slow(){
+    RCC -> APB2ENR |= RCC_APB2ENR_SPI1EN;
     SPI1 -> CR1 &= ~SPI_CR1_SPE;
     SPI1 -> CR1 |= SPI_CR1_BR | SPI_CR1_MSTR;
     SPI1 -> CR2 |= SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
@@ -349,13 +353,14 @@ void init_spi1_slow(){
     SPI1 -> CR1 |= SPI_CR1_SSI;
     SPI1 -> CR2 |= SPI_CR2_FRXTH;
     SPI1 -> CR1 |= SPI_CR1_SPE;
-
 }
 
-void init_lcd_spi(){
+void init_lcd_spi(void)
+{
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-    GPIOB->MODER &= ~(0x30C30000);
-    GPIOB->MODER |= 0x10410000; //SET PB8, PB11, PB14 AS GPIO OUTPUTS
+    GPIOB->MODER &= ~(0x30c30cc0);
+    GPIOB->MODER |= 0x10410880; //SET PB3, PB5, AS alternates, 8,11,14 as outputs
+    GPIOB->AFR[0] &= ~0x0f0f000;
     init_spi1_slow();
 }
 
@@ -432,8 +437,8 @@ void LCD_DrawPoint(u16 x, u16 y, u16 c)
 static void _LCD_DrawLine(u16 x1, u16 y1, u16 x2, u16 y2, u16 c)
 {
     u16 t;
-    volatile int xerr=0,yerr=0,delta_x,delta_y,distance;
-    volatile int incx,incy,uRow,uCol;
+    int xerr=0,yerr=0,delta_x,delta_y,distance;
+    int incx,incy,uRow,uCol;
 
     delta_x=x2-x1;
     delta_y=y2-y1;
@@ -891,9 +896,9 @@ void _LCD_DrawChar(u16 x,u16 y,u16 fc, u16 bc, char num, u8 size, u8 mode)
         LCD_WriteData16_Prepare();
         for(pos=0;pos<size;pos++) {
             if (size==12)
-                temp=asc2_1206[(int)num][pos];
+                temp=asc2_1206[num][pos];
             else
-                temp=asc2_1608[(int)num][pos];
+                temp=asc2_1608[num][pos];
             for (t=0;t<size/2;t++) {
                 if (temp&0x01)
                     LCD_WriteData16(fc);
@@ -908,9 +913,9 @@ void _LCD_DrawChar(u16 x,u16 y,u16 fc, u16 bc, char num, u8 size, u8 mode)
         for(pos=0;pos<size;pos++)
         {
             if (size==12)
-                temp=asc2_1206[(int)num][pos];
+                temp=asc2_1206[num][pos];
             else
-                temp=asc2_1608[(int)num][pos];
+                temp=asc2_1608[num][pos];
             for (t=0;t<size/2;t++)
             {
                 if(temp&0x01)
@@ -952,27 +957,41 @@ void LCD_DrawString(u16 x,u16 y, u16 fc, u16 bg, const char *p, u8 size, u8 mode
 //===========================================================================
 // Draw a picture with upper left corner at (x0,y0).
 //===========================================================================
-void LCD_DrawPicture(u16 x0, u16 y0, const Picture *pic)
+void LCD_DrawPicture(int x0, int y0, const Picture *pic)
 {
+    int x1 = x0 + pic->width-1;
+    int y1 = y0 + pic->height-1;
+    if (x0 >= lcddev.width || y0 >= lcddev.height || x1 < 0 || y1 < 0)
+        return; // Completely outside of screen.  Nothing to do.
     lcddev.select(1);
-    u16 x1 = x0 + pic->width-1;
-    u16 y1 = y0 + pic->height-1;
-    // No error handling.  Just loop forever if out-of-bounds.
-    while (x0 >= lcddev.width)
-        ;
-    while (x1 >= lcddev.width)
-        ;
-    while (y0 >= lcddev.height)
-        ;
-    while (y1 >= lcddev.height)
-        ;
+    int xs=0;
+    int ys=0;
+    int xe=pic->width;
+    int ye=pic->height;
+    if (x0 < 0) {
+        xs = -x0;
+        x0 = 0;
+    }
+    if (y0 < 0) {
+        ys = -y0;
+        y0 = 0;
+    }
+    if (x1 >= lcddev.width) {
+        xe -= x1 - (lcddev.width - 1);
+        x1 = lcddev.width - 1;
+    }
+    if (y1 >= lcddev.height) {
+        ye -= y1 - (lcddev.height - 1);
+        y1 = lcddev.height - 1;
+    }
+
     LCD_SetWindow(x0,y0,x1,y1);
     LCD_WriteData16_Prepare();
 
     u16 *data = (u16 *)pic->pixel_data;
-    for(int y=0; y<pic->height; y++) {
-        u16 *row = &data[y * pic->width];
-        for(int x=0; x<pic->width; x++)
+    for(int y=ys; y<ye; y++) {
+        u16 *row = &data[y * pic->width + xs];
+        for(int x=xs; x<xe; x++)
             LCD_WriteData16(*row++);
     }
 
