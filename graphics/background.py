@@ -10,18 +10,45 @@ arr = [ [0 for x in range(0,height)] for y in range(0,width) ]
 border = 20
 black = 0x0000
 white = 0xffff
+grey = 0X8430
 
 # Make a checkerboard with green boundaries
 for x in range(0, width):
   for y in range(0, height):
     if x < border or x >= width-border:
-      arr[x][y] = white
+      if (x // 20) % 2 == 0:
+        if (y // 20) % 2 == 0:
+          arr[x][y] = grey
+        else:
+          arr[x][y] = white
+      else:
+        if (y // 20) % 2 == 0:
+          arr[x][y] = white
+        else:
+          arr[x][y] = grey
+      # if y % 20 == 0:
+      #   arr[x][y] = black
+      # else:
+      #   arr[x][y] = white
       continue
     if y >= height-border: #or y >border
-      arr[x][y] = white
+      if (x // 20) % 2 == 0:
+        if (y // 20) % 2 == 0:
+          arr[x][y] = grey
+        else:
+          arr[x][y] = white
+      else:
+        if (y // 20) % 2 == 0:
+          arr[x][y] = white
+        else:
+          arr[x][y] = grey
       continue
-    else:
-      arr[x][y] = black
+    
+    arr[x][y] = black
+
+      
+
+   
     # if (x // 20) % 2 == 0:
     #   if (y // 20) % 2 == 0:
     #     arr[x][y] = black

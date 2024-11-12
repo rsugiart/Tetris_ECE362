@@ -85,12 +85,12 @@ void LCD_Reset(void)
 
 // If you want to try the slower version of SPI, #define SLOW_SPI
 
-#define SLOW_SPI
+// #define SLOW_SPI
 #if defined(SLOW_SPI)
 
 // What GPIO port and SPI channel are we using here?
 #define CSPORT GPIOB
-#define LCD_CS    10 /* also known as NSS */
+#define LCD_CS    8 /* also known as NSS */
 #define RSPORT GPIOA
 #define LCD_RS    3
 #define RESETPORT GPIOB
@@ -349,7 +349,9 @@ void init_spi1_slow(){
     RCC -> APB2ENR |= RCC_APB2ENR_SPI1EN;
     SPI1 -> CR1 &= ~SPI_CR1_SPE;
     SPI1 -> CR1 |= SPI_CR1_BR | SPI_CR1_MSTR;
+
     SPI1 -> CR2 |= SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+    SPI1 -> CR2 &= ~SPI_CR2_DS_3;
     SPI1 -> CR1 |= SPI_CR1_SSM;
     SPI1 -> CR1 |= SPI_CR1_SSI;
     SPI1 -> CR2 |= SPI_CR2_FRXTH;
@@ -392,6 +394,7 @@ void LCD_SetWindow(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEn
     LCD_WR_DATA(0x00FF&yEnd);
 
     LCD_WriteRAM_Prepare();
+    nano_wait(1000000000);
 }
 
 //===========================================================================
