@@ -224,32 +224,36 @@ void TIM17_IRQHandler(void)
 int main(void)
 {
     // setup_buttons();
+    internal_clock();
     LCD_Setup();
 
     // Draw the background.
-    // LCD_DrawPicture(0,0,&background);
-    LCD_DrawFillRectangle(0,0,50,50,RED);
+    LCD_DrawPicture(0,0,&background);
+    while(1) {
+        LCD_DrawFillRectangle(0,0,50,50,RED);
+    }
+    LCD_Circle(50, 50, 10, 1, GREEN);
 
     // Set all pixels in the object to white.
-    // for(int i=0; i<29*29; i++)
-    //     object->pix2[i] = 0xffff;
+    for(int i=0; i<29*29; i++)
+        object->pix2[i] = 0xffff;
 
-    // // Center the 19x19 ball into center of the 29x29 object.
-    // // Now, the 19x19 ball has 5-pixel white borders in all directions.
-    // pic_overlay(object,5,5,&ball,0xffff);
+    // Center the 19x19 ball into center of the 29x29 object.
+    // Now, the 19x19 ball has 5-pixel white borders in all directions.
+    pic_overlay(object,5,5,&ball,0xffff);
 
-    // // Initialize the game state.
-    // xmin = border + ball.width/2;
-    // xmax = background.width - border - ball.width/2;
-    // ymin = border + ball.width/2;
-    // ymax = background.height - border - ball.height/2;
-    // x = (xmin+xmax)/2; // Center of ball
-    // y = ymin;
-    // vx = 0; // Velocity components of ball
-    // vy = 1;
+    // Initialize the game state.
+    xmin = border + ball.width/2;
+    xmax = background.width - border - ball.width/2;
+    ymin = border + ball.width/2;
+    ymax = background.height - border - ball.height/2;
+    x = (xmin+xmax)/2; // Center of ball
+    y = ymin;
+    vx = 0; // Velocity components of ball
+    vy = 1;
 
-    // px = -1; // Center of paddle offset (invalid initial value to force update)
-    // newpx = (xmax+xmin)/2; // New center of paddle
+    px = -1; // Center of paddle offset (invalid initial value to force update)
+    newpx = (xmax+xmin)/2; // New center of paddle
 
     setup_tim17();
 }

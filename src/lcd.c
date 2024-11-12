@@ -85,6 +85,7 @@ void LCD_Reset(void)
 
 // If you want to try the slower version of SPI, #define SLOW_SPI
 
+#define SLOW_SPI
 #if defined(SLOW_SPI)
 
 // What GPIO port and SPI channel are we using here?
@@ -359,7 +360,7 @@ void init_lcd_spi(void)
 {
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
     GPIOB->MODER &= ~(0x30c30cc0);
-    GPIOB->MODER |= 0x10410880; //SET PB3, PB5, AS alternates, 8,11,14 as outputs
+    GPIOB->MODER |= 0x10410880; //SET PB3, PB5, as alternates, 8,11,14 as outputs
     GPIOB->AFR[0] &= ~0x0f0f000;
     init_spi1_slow();
 }
