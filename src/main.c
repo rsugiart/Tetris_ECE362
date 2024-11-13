@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "lcd.h"
+#include "sound.h"
 
 void setup_tim17()
 {
@@ -214,8 +215,8 @@ int main(void)
     LCD_Clear(RED);
     // nano_wait(1000000000);
 
-    // Draw the background.
-    LCD_DrawPicture(0,0,&background);
+//     // Draw the background.
+//     LCD_DrawPicture(0,0,&background);
   
  
     
@@ -248,6 +249,6 @@ int main(void)
     // vx = 0; // Velocity components of ball
     // vy = 1;
 
-    // px = -1; // Center of paddle offset (invalid initial value to force update)
-    // newpx = (xmax+xmin)/2; // New center of paddle
+//     // px = -1; // Center of paddle offset (invalid initial value to force update)
+//     // newpx = (xmax+xmin)/2; // New center of paddle
 
