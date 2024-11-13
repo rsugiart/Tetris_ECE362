@@ -211,7 +211,7 @@ int main(void)
     setup_buttons();
     //internal_clock();
     LCD_Setup();
-    // LCD_Clear(RED);
+    LCD_Clear(RED);
     // nano_wait(1000000000);
 
     // Draw the background.
