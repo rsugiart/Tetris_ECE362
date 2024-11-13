@@ -348,7 +348,7 @@ void LCD_Init(void (*reset)(int), void (*select)(int), void (*reg_select)(int))
 void init_spi1_slow(){
     RCC -> APB2ENR |= RCC_APB2ENR_SPI1EN;
     SPI1 -> CR1 &= ~SPI_CR1_SPE;
-    SPI1 -> CR1 |= SPI_CR1_BR | SPI_CR1_MSTR;
+    SPI1 -> CR1 |= SPI_CR1_BR_1| SPI_CR1_MSTR;
 
     SPI1 -> CR2 |= SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
     SPI1 -> CR2 &= ~SPI_CR2_DS_3;

@@ -155,22 +155,7 @@ void TIM17_IRQHandler(void)
         newpx -= 1;
     else if (key == 'D')
         newpx += 1;
-    if (newpx - paddle.width/2 <= border || newpx + paddle.width/2 >= 240-border)
-        newpx = px;
-    if (newpx != px) {
-        px = newpx;
-        // Create a temporary object two pixels wider than the paddle.
-        // Copy the background into it.
-        // Overlay the paddle image into the center.
-        // Draw the result.
-        //
-        // As long as the paddle moves no more than one pixel to the left or right
-        // it will clear the previous parts of the paddle from the screen.
-        TempPicturePtr(tmp,61,5);
-        pic_subset(tmp, &background, px-tmp->width/2, background.height-border-tmp->height); // Copy the background
-        pic_overlay(tmp, 1, 0, &paddle, -1);
-        LCD_DrawPicture(px-tmp->width/2, background.height-border-tmp->height, tmp);
-    }
+    
     x += vx;
     y += vy;
     if (x <= xmin) {
@@ -223,8 +208,8 @@ void TIM17_IRQHandler(void)
 
 int main(void)
 {
-    // setup_buttons();
-    internal_clock();
+    setup_buttons();
+    //internal_clock();
     LCD_Setup();
     // LCD_Clear(RED);
     // nano_wait(1000000000);
@@ -232,15 +217,27 @@ int main(void)
     // Draw the background.
     LCD_DrawPicture(0,0,&background);
   
+ 
+    
+    LCD_DrawFillRectangle(20,20,60,40,RED);
+    xmin = border + 10;
+    xmax = background.width - border - 10;
+    ymin = border + 10;
+    ymax = background.height - border - 10;
+    x = (xmin+xmax)/2; // Center of ball
+    y = ymin;
+    vx = 0; // Velocity components of ball
+    vy = 1;
+    setup_tim17();
+}
 
-    // Set all pixels in the object to white.
+// Center the 19x19 ball into center of the 29x29 object.
+   // Set all pixels in the object to white.
     // for(int i=0; i<29*29; i++)
     //     object->pix2[i] = 0xffff;
-
-    // // Center the 19x19 ball into center of the 29x29 object.
     // // Now, the 19x19 ball has 5-pixel white borders in all directions.
     // pic_overlay(object,5,5,&ball,0xffff);
-
+    // //nano_wait(100000);
     // // Initialize the game state.
     // xmin = border + ball.width/2;
     // xmax = background.width - border - ball.width/2;
@@ -254,5 +251,3 @@ int main(void)
     // px = -1; // Center of paddle offset (invalid initial value to force update)
     // newpx = (xmax+xmin)/2; // New center of paddle
 
-    // setup_tim17();
-}
