@@ -14,8 +14,9 @@ void autotest();
 // 16-bits per digit.
 // The most significant 8 bits are the digit number.
 // The least significant 8 bits are the segments to illuminate.
+int msg_index = 0;
 uint16_t msg[8] = { 0x0000,0x0100,0x0200,0x0300,0x0400,0x0500,0x0600,0x0700 };
-uint16_t score = 0; //score held 
+int score = 0; //score held 
 extern const char font[];
 // Print an 8-character string on the 8 digits
 void print(const char str[]);
@@ -27,15 +28,82 @@ void printfloat(float f);
 // enable_ports()
 //============================================================================
 void enable_ports(void) {
-    RCC->AHBENR |= RCC_AHBENR_GPIOBEN; //clock port b
+    //RCC->AHBENR |= RCC_AHBENR_GPIOBEN; //clock port b
     RCC->AHBENR |= RCC_AHBENR_GPIOCEN; //clock port c
     
-    GPIOB->MODER |= 0x00155555; // port b pins 0-10 output CHANGE
+    //GPIOB->MODER |= 0x00155555; // port b pins 0-10 output CHANGE
     
     GPIOC->MODER |= 0x00005500; // port c pins 4-7 output
     GPIOC->OTYPER |= 0x000000f0; // port c pins 4-7 open drain output
     GPIOC->MODER &= ~0x000000ff; // port c pins 0-3 input
     GPIOC->PUPDR |= 0x00000055; // port c pins 0-3 resistors pulled up
+}
+
+//===========================================================================
+// Bit Bang SPI LED Array
+//===========================================================================
+//===========================================================================
+// Configure PB12 (CS), PB13 (SCK), and PB15 (SDI) for outputs
+//===========================================================================
+void setup_bb(void) {
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+    GPIOB->MODER &= ~(GPIO_MODER_MODER12 | GPIO_MODER_MODER13 | GPIO_MODER_MODER15);  // reset bits
+    GPIOB->MODER |= 0x45000000; //pb 12 13 15 as output
+    GPIOB->BSRR |= (1 << 12); // set pin 12 high
+    GPIOB->BRR |= (1 << 13); // set pin 13 low
+}
+
+void small_delay(void) {
+    nano_wait(50000);
+}
+
+//===========================================================================
+// Set the MOSI bit, then set the clock high and low.
+// Pause between doing these steps with small_delay().
+//===========================================================================
+void bb_write_bit(int val) {
+    // CS (PB12)
+    // SCK (PB13)
+    // SDI (PB15)
+    //set SDI to 0 or 1 based on out(val)
+    if (val) {
+        GPIOB->ODR |= (1 << 15); //SDI to 0 or 1
+    } else {
+        GPIOB->ODR &= ~(1 << 15);
+    }
+    small_delay();
+    GPIOB->ODR |= (1 << 13); //set SCK to 1
+    small_delay();
+    GPIOB->ODR &= ~(1 << 13); //set SCK 0
+}
+
+//===========================================================================
+// Set CS (PB12) low,
+// write 16 bits using bb_write_bit,
+// then set CS high.
+//===========================================================================
+void bb_write_halfword(int halfword) {
+    GPIOB->ODR &= ~(1 << 12); //set cs low
+
+    //loop through bits
+    for (int i = 15; i >= 0; i--) {
+        //shift and isolate
+        int bit = (halfword >> i) & 1;
+        bb_write_bit(bit);
+    }
+
+    GPIOB->ODR |= (1 << 12); //set cs high
+}
+
+//===========================================================================
+// Continually bitbang the msg[] array.
+//===========================================================================
+void drive_bb(void) {
+    for(;;)
+        for(int d=0; d<8; d++) {
+            bb_write_halfword(msg[d]);
+            nano_wait(1000000); // wait 1 ms between digits
+        }
 }
 
 //============================================================================
@@ -47,7 +115,7 @@ void setup_dma(void) {
     DMA1_Channel5->CCR &= ~DMA_CCR_EN; //enable bit off
 
     DMA1_Channel5->CMAR = (uint32_t)msg; //cmar to address of msg array
-    DMA1_Channel5->CPAR = (uint32_t)&GPIOB->ODR; //cpar to address of GPIOB_ODR
+    DMA1_Channel5->CPAR = (uint32_t)&SPI2->DR; //cpar to address of GPIOB_ODR
     DMA1_Channel5->CNDTR = 8;
 
     DMA1_Channel5->CCR |= DMA_CCR_DIR; //memory to peripheral
@@ -59,8 +127,8 @@ void setup_dma(void) {
     //loading information for score
     DMA1_Channel4->CCR &= ~DMA_CCR_EN; //enable bit off
 
-    DMA1_Channel4->CMAR = (uint32_t)score; //cmar to address of msg array
-    DMA1_Channel4->CPAR = (uint32_t)&GPIOB->ODR; //cpar to address of GPIOB_ODR
+    DMA1_Channel4->CMAR = (int)score; //cmar to address of msg array
+    DMA1_Channel4->CPAR = (uint32_t)&SPI2->DR; //cpar to address of GPIOB_ODR
     DMA1_Channel4->CNDTR = 1; 
 
     DMA1_Channel4->CCR |= DMA_CCR_DIR; //memory to peripheral
@@ -68,12 +136,36 @@ void setup_dma(void) {
     DMA1_Channel4->CCR |= DMA_CCR_MSIZE_0; //memory size 16 bit
     DMA1_Channel4->CCR |= DMA_CCR_PSIZE_0; //peripheral size 16 bit
     DMA1_Channel4->CCR |= DMA_CCR_CIRC; //circular mode
+
+    SPI2 -> CR2 |= SPI_CR2_TXDMAEN;
 }
 
 
 void enable_dma(void) {
     DMA1_Channel5->CCR |= DMA_CCR_EN; //enable
     DMA1_Channel4->CCR |= DMA_CCR_EN; //enable
+}
+
+//===========================================================================
+// Initialize the SPI2 peripheral.
+//===========================================================================
+void init_spi2(void) {
+    RCC -> AHBENR |= RCC_AHBENR_GPIOBEN; //enable gpiob clock
+    RCC -> APB1ENR |= RCC_APB1ENR_SPI2EN; //enable spi2 clock
+
+    GPIOB->MODER &= ~(GPIO_MODER_MODER12 | GPIO_MODER_MODER13 | GPIO_MODER_MODER15);  // reset bits
+    GPIOB->MODER |= (GPIO_MODER_MODER12_1 | GPIO_MODER_MODER13_1 | GPIO_MODER_MODER15_1); //alt func mode
+
+    GPIOB->AFR[1] &= ~(GPIO_AFRH_AFRH4 | GPIO_AFRH_AFRH5 | GPIO_AFRH_AFRH7);  // Clear AFR values
+
+    SPI2->CR1 &= ~(SPI_CR1_SPE); //clear cr1_spe
+
+    SPI2->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2; //baud rate
+    SPI2->CR2 = (0xf << 8); //16 bit word size
+    SPI2->CR1 |= SPI_CR1_MSTR; // master configuration
+    SPI2->CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //ss output enable bit and enable nssp
+    SPI2->CR2 |= SPI_CR2_TXDMAEN;  //set TXDMAEN to enable DMA transfers on transmit buffer empty
+    SPI2->CR1 |= SPI_CR1_SPE; //enable SPI2
 }
 
 //============================================================================
@@ -184,6 +276,35 @@ float getfloat(void);     // read a floating-point number from keypad
 void show_keys(void);     // demonstrate get_key_event()
 
 //===========================================================================
+// Configure timer 7 to invoke the update interrupt at 1kHz
+// Copy from lab 4 or 5.
+//===========================================================================
+void init_tim7(void) {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM7EN;
+    
+    TIM7->PSC = 4799;
+    TIM7->ARR = 9;
+    TIM7->DIER |= TIM_DIER_UIE;
+    TIM7->CR1 |= TIM_CR1_CEN;
+
+    NVIC_EnableIRQ(TIM7_IRQn);
+}
+
+
+//===========================================================================
+// Copy the Timer 7 ISR from lab 5
+//===========================================================================
+// TODO To be copied
+void TIM7_IRQHandler() {
+    TIM7->SR &= ~TIM_SR_UIF;
+
+    int32_t rows = read_rows();
+    update_history(col, rows);
+    col = (col + 1) & 3;
+    drive_column(col);
+}
+
+//===========================================================================
 // Part 4: Create an analog sine wave of a specified frequency
 //===========================================================================
 void dialer(void);
@@ -278,6 +399,26 @@ void init_tim6(void) {
     NVIC_EnableIRQ(TIM6_DAC_IRQn);
 }
 
+//print score
+void print_score(void) {
+    char newscore [10];
+    sprintf(newscore, "%d", score);  
+    print(newscore);
+}
+
+//update score
+int update_score(int score) {
+    int updatedScore = score + 50;
+    return updatedScore;
+}
+
+//plays a sound when level up
+void levelup_sound(void) {
+        set_freq(0, f); //set frequency
+        nano_wait(1000000000);
+        set_freq(0, 0); //turn off sound
+}
+
 //============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
@@ -293,13 +434,18 @@ int main(void) {
     msg[6] |= font[' '];
     msg[7] |= font['2'];
 
+    // score = 50;
+    // print_score();
+
     enable_ports();
+    init_tim7();
+    setup_bb();
+    drive_bb();
+    init_spi2();
     setup_dma();
     enable_dma();
     init_tim15();
     init_tim1();
-
-    //init_tim7();
 
     setup_adc();
     init_tim2();
@@ -314,22 +460,16 @@ int main(void) {
     setup_dac();
     init_tim6();
 
-    float f = 261.626; // 261.626 Hz tone
+    float f = 261.626; // 261.626 Hz tone  
 
-    //sound for when score levels up
+    //game state
     for(;;) {
-        if (score % 100) { //level up each 100
-            set_freq(0, f); //set frequency
-            nano_wait(1000000);
-            set_freq(0, 0); //turn off sound
+        print_score();
+        //if line clear placed then update_score();
+        if (score % 100 == 0) {
+            levelup_sound();
         }
     }
-
-    score = 50;
-    //updating scoreboard
-    for (;;) {
-        printfloat(score);
-    }
-
+    
     dialer();
 }

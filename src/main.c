@@ -207,30 +207,30 @@ void TIM17_IRQHandler(void)
     // direction) from it's previous location, it will clear the old object.
 }
 
-int main(void)
-{
-    setup_buttons();
-    //internal_clock();
-    LCD_Setup();
-    LCD_Clear(RED);
-    // nano_wait(1000000000);
+// int main(void)
+// {
+//     setup_buttons();
+//     //internal_clock();
+//     LCD_Setup();
+//     LCD_Clear(RED);
+//     // nano_wait(1000000000);
 
-//     // Draw the background.
-//     LCD_DrawPicture(0,0,&background);
+// //     // Draw the background.
+// //     LCD_DrawPicture(0,0,&background);
   
  
     
-    LCD_DrawFillRectangle(20,20,60,40,RED);
-    xmin = border + 10;
-    xmax = background.width - border - 10;
-    ymin = border + 10;
-    ymax = background.height - border - 10;
-    x = (xmin+xmax)/2; // Center of ball
-    y = ymin;
-    vx = 0; // Velocity components of ball
-    vy = 1;
-    setup_tim17();
-}
+//     LCD_DrawFillRectangle(20,20,60,40,RED);
+//     xmin = border + 10;
+//     xmax = background.width - border - 10;
+//     ymin = border + 10;
+//     ymax = background.height - border - 10;
+//     x = (xmin+xmax)/2; // Center of ball
+//     y = ymin;
+//     vx = 0; // Velocity components of ball
+//     vy = 1;
+//     setup_tim17();
+// }
 
 // Center the 19x19 ball into center of the 29x29 object.
    // Set all pixels in the object to white.

@@ -3,7 +3,7 @@
 #include "stdlib.h"
 
 extern uint16_t msg[8];
-extern uint16_t score;
+extern int score;
 
 void enable_ports(void);
 void setup_dma(void);
