@@ -215,15 +215,15 @@ void TIM17_IRQHandler(void)
             y += vy;
         perturb(&vx,&vy);
     }
-    // if (y >= ymax - paddle.height &&
-    //     x >= (px - paddle.width/2) &&
-    //     x <= (px + paddle.width/2)) {
-    //     // The ball has hit the paddle.  Bounce.
-    //     int pmax = ymax - paddle.height;
-    //     vy = -vy;
-    //     if (y > pmax)
-    //         y += vy;
-    // }
+    if (y >= ymax - paddle.height &&
+        x >= (px - paddle.width/2) &&
+        x <= (px + paddle.width/2)) {
+        // The ball has hit the paddle.  Bounce.
+        int pmax = ymax - paddle.height;
+        vy = -vy;
+        if (y > pmax)
+            y += vy;
+    }
     else if (y >= ymax) {
         // The ball has hit the bottom wall.  Set velocity of ball to 0,0.
         vx = 0;
@@ -286,7 +286,49 @@ int main(void)
     y = ymin;
     vx = 0; // Velocity components of ball
     vy = 20;
+
+    newpx = (xmax+xmin)/2; // New center of block
+    px = -1;
+
     setup_tim16();
+
+    for(;;) {
+        char key = get_keypress();
+        if (key == 'A') {
+            newpx -= 20;
+        }
+        if (key == '2') {
+            newpx += 20;
+        }
+        if (newpx - o.width/2 <= border || newpx + o.width/2 >= 240-border) {
+            newpx = x;
+        }
+        if (newpx != px) {
+            x = newpx;
+            TempPicturePtr(tmp, 80, 80);
+            pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
+            pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
+            // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
+            //         (background.height-border-paddle.height) - (y-tmp->height/2),
+            //         &paddle, 0xffff); // Draw the paddle into the image
+            LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp);
+        }
+        // if (newpx - paddle.width/2 <= border || newpx + paddle.width/2 >= 240-border)
+    //     newpx = px;
+    // if (newpx != px) {
+    //     px = newpx;
+    //     // Create a temporary object two pixels wider than the paddle.
+    //     // Copy the background into it.
+    //     // Overlay the paddle image into the center.
+    //     // Draw the result.
+    //     //
+    //     // As long as the paddle moves no more than one pixel to the left or right
+    //     // it will clear the previous parts of the paddle from the screen.
+    //     TempPicturePtr(tmp1,40,40);
+    //     pic_subset(tmp1, &background, px-tmp1->width/2, background.height-border-tmp1->height); // Copy the background
+    //     pic_overlay(tmp1, 1, 0, &ball, -1);
+    //     LCD_DrawPicture(px-tmp1->width/2, background.height-border-tmp1->height, tmp1);}
+    }
 }
 
 // Center the 19x19 ball into center of the 29x29 object.
