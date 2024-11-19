@@ -291,13 +291,12 @@ void init_tim7(void) {
 }
 
 
-//===========================================================================
+// ===========================================================================
 // Copy the Timer 7 ISR from lab 5
-//===========================================================================
+// ===========================================================================
 // TODO To be copied
 void TIM7_IRQHandler() {
     TIM7->SR &= ~TIM_SR_UIF;
-
     int32_t rows = read_rows();
     update_history(col, rows);
     col = (col + 1) & 3;
@@ -370,13 +369,13 @@ void TIM6_DAC_IRQHandler(){
 
     offset0 += step0;
     offset1 += step1;
-    if(offset0 >= (N >> 16)) {
-        offset0 -= (N >> 16);
+    if(offset0 >= (N << 16)) {
+        offset0 -= (N << 16);
     }
-    if(offset1 >= (N >> 16)) {
-        offset1 -= (N >> 16);
+    if(offset1 >= (N << 16)) {
+        offset1 -= (N << 16);
     }
-    int samp = wavetable[offset0 >> 16] + wavetable[offset1 >> 16];
+    uint32_t samp = wavetable[offset0 >> 16] + wavetable[offset1 >> 16];
     samp *= volume;
     samp = (samp >> 17);
     samp += 2048;
@@ -412,9 +411,11 @@ int update_score(int score) {
     return updatedScore;
 }
 
+float f = 261.626; // 261.626 Hz tone  
+
 //plays a sound when level up
 void levelup_sound(void) {
-        //set_freq(0, f); //set frequency
+        set_freq(0, f); //set frequency
         nano_wait(1000000000);
         set_freq(0, 0); //turn off sound
 }
@@ -422,54 +423,52 @@ void levelup_sound(void) {
 //============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
-// int main(void) {
-//     internal_clock();
-//     // Initialize the display to something interesting to get started.
-//     msg[0] |= font['T'];
-//     msg[1] |= font['E'];
-//     msg[2] |= font['T'];
-//     msg[3] |= font['R'];
-//     msg[4] |= font['I'];
-//     msg[5] |= font['S'];
-//     msg[6] |= font[' '];
-//     msg[7] |= font['2'];
+int main(void) {
+    internal_clock();
+    // Initialize the display to something interesting to get started.
+    msg[0] |= font['T'];
+    msg[1] |= font['E'];
+    msg[2] |= font['T'];
+    msg[3] |= font['R'];
+    msg[4] |= font['I'];
+    msg[5] |= font['S'];
+    msg[6] |= font[' '];
+    msg[7] |= font['2'];
 
-//     // score = 50;
-//     // print_score();
+    // score = 50;
+    // print_score();
 
-//     enable_ports();
-//     init_tim7();
-//     setup_bb();
-//     drive_bb();
-//     init_spi2();
-//     setup_dma();
-//     enable_dma();
-//     init_tim15();
-//     init_tim1();
+    enable_ports();
+    init_tim7();
+    // setup_bb();
+    // drive_bb();
+    // init_spi2();
+    // setup_dma();
+    // enable_dma();
+    init_tim15();
+    init_tim1();
 
-//     setup_adc();
-//     init_tim2();
+    setup_adc();
+    init_tim2();
 
-//     //showing voltage for adc
-//     // for(;;) {
-//     //     printfloat(2.95 * volume / 4096);
-//     // }
+    //showing voltage for adc
+    // for(;;) {
+    //     printfloat(2.95 * volume / 4096);
+    // }
 
-//     //dac
-//     init_wavetable();
-//     setup_dac();
-//     init_tim6();
-
-//     float f = 261.626; // 261.626 Hz tone  
-
-//     //game state
-//     for(;;) {
-//         print_score();
-//         //if line clear placed then update_score();
-//         if (score % 100 == 0) {
-//             levelup_sound();
-//         }
-//     }
+    //dac
+    init_wavetable();
+    setup_dac();
+    set_freq(0,440.000);
+    init_tim6();
+    // game state
+    for(;;) {
+        score = 100;
+        //if line clear placed then update_score();
+        // if (score % 100 == 0) {
+        //     levelup_sound();
+        // }
+    }
     
-//     dialer();
-// }
+    // dialer();
+}

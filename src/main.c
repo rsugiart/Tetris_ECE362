@@ -24,6 +24,7 @@ void setup_tim16()
     TIM16 -> PSC = 48000-1;
     TIM16 -> ARR = 1000-1;
     TIM16 -> DIER |= TIM_DIER_UIE;
+    TIM16 -> CR1 |= TIM_CR1_ARPE;
     NVIC -> ISER[0] = 1 << TIM16_IRQn;
     TIM16 -> CR1 |= TIM_CR1_CEN;
 }
@@ -136,8 +137,8 @@ void perturb(int *vx, int *vy)
 
 extern const Picture background; // A 240x320 background image
 extern const Picture ball;
-extern const Picture o; // A 19x19 purple ball with white boundaries
-extern const Picture paddle; // A 59x5 paddle
+extern const Picture o_piece; // A 19x19 purple ball with white boundaries
+extern const Picture i_piece; // A 59x5 paddle
 
 const int border = 20;
 int xmin; // Farthest to the left the center of the ball can go
@@ -168,14 +169,26 @@ void TIM17_IRQHandler(void)
     //initialize piece array in main
     //check game piece array and place in game?
     //if left arrow clicked
-        
-
+    
     char key = check_key();
     if (key == '*')
-        newpx -= 20;
+        newpx = -20;
     else if (key == 'D')
-        newpx += 20;
-    
+        newpx = 20;
+    if (newpx - o_piece.width/2 <= border || newpx + o_piece.width/2 >= 240-border) {
+        newpx = x;
+    }
+    if (newpx != x) {
+        x = newpx;
+        TempPicturePtr(tmp, 80, 80);
+        pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
+        pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
+        // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
+        //         (background.height-border-paddle.height) - (y-tmp->height/2),
+        //         &paddle, 0xffff); // Draw the paddle into the image
+        LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp);
+    }
+
     // if (newpx - paddle.width/2 <= border || newpx + paddle.width/2 >= 240-border)
     //     newpx = px;
     // if (newpx != px) {
@@ -192,59 +205,60 @@ void TIM17_IRQHandler(void)
     //     pic_overlay(tmp1, 1, 0, &ball, -1);
     //     LCD_DrawPicture(px-tmp1->width/2, background.height-border-tmp1->height, tmp1);}
 
-    x += vx;
-    y += vy;
-    if (x <= xmin) {
-        // Ball hit the left wall.
-        vx = - vx;
-        if (x < xmin)
-            x += vx;
-        perturb(&vx,&vy);
-    }
-    if (x >= xmax) {
-        // Ball hit the right wall.
-        vx = -vx;
-        if (x > xmax)
-            x += vx;
-        perturb(&vx,&vy);
-    }
-    if (y <= ymin) {
-        // Ball hit the top wall.
-        vy = - vy;
-        if (y < ymin)
-            y += vy;
-        perturb(&vx,&vy);
-    }
-    if (y >= ymax - paddle.height &&
-        x >= (px - paddle.width/2) &&
-        x <= (px + paddle.width/2)) {
-        // The ball has hit the paddle.  Bounce.
-        int pmax = ymax - paddle.height;
-        vy = -vy;
-        if (y > pmax)
-            y += vy;
-    }
-    else if (y >= ymax) {
-        // The ball has hit the bottom wall.  Set velocity of ball to 0,0.
-        vx = 0;
-        vy = 0;
-    }
+    // x += vx;
+    // y += vy;
+    // if (x <= xmin) {
+    //     // Ball hit the left wall.
+    //     vx = - vx;
+    //     if (x < xmin)
+    //         x += vx;
+    //     perturb(&vx,&vy);
+    // }
+    // if (x >= xmax) {
+    //     // Ball hit the right wall.
+    //     vx = -vx;
+    //     if (x > xmax)
+    //         x += vx;
+    //     perturb(&vx,&vy);
+    // }
+    // if (y <= ymin) {
+    //     // Ball hit the top wall.
+    //     vy = - vy;
+    //     if (y < ymin)
+    //         y += vy;
+    //     perturb(&vx,&vy);
+    // }
+    // if (y >= ymax - paddle.height &&
+    //     x >= (px - paddle.width/2) &&
+    //     x <= (px + paddle.width/2)) {
+    //     // The ball has hit the paddle.  Bounce.
+    //     int pmax = ymax - paddle.height;
+    //     vy = -vy;
+    //     if (y > pmax)
+    //         y += vy;
+    // }
+    // else if (y >= ymax) {
+    //     // The ball has hit the bottom wall.  Set velocity of ball to 0,0.
+    //     vx = 0;
+    //     vy = 0;
+    // }
 
-    TempPicturePtr(tmp,80,80); // Create a temporary 29x29 image.
-    pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
-    pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
-    // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
-    //         (background.height-border-paddle.height) - (y-tmp->height/2),
-    //         &paddle, 0xffff); // Draw the paddle into the image
-    LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp); // Re-draw it to the screen
-    // The object has a 5-pixel border around it that holds the background
-    // image.  As long as the object does not move more than 5 pixels (in any
-    // direction) from it's previous location, it will clear the old object.
+    // TempPicturePtr(tmp,80,80); // Create a temporary 29x29 image.
+    // pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
+    // pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
+    // // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
+    // //         (background.height-border-paddle.height) - (y-tmp->height/2),
+    // //         &paddle, 0xffff); // Draw the paddle into the image
+    // LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp); // Re-draw it to the screen
+    // // The object has a 5-pixel border around it that holds the background
+    // // image.  As long as the object does not move more than 5 pixels (in any
+    // // direction) from it's previous location, it will clear the old object.
 }
 
 void TIM16_IRQHandler(void) 
 {
     x += vx;
+    vx = 0;
     y += vy;
     if (y >= ymax) {
         // The ball has hit the bottom wall.  Set velocity of ball to 0,0.
@@ -260,76 +274,71 @@ void TIM16_IRQHandler(void)
     LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp); // Re-draw it to the screen
 }
 
-int main(void)
-{
-    setup_buttons();
-    internal_clock();
-    LCD_Setup();
-    // nano_wait(1000000000);
+// int main(void)
+// {
+//     enable_ports();
+//     init_tim7();
+//     internal_clock();
+//     LCD_Setup();
+//     // nano_wait(1000000000);
 
-    // Draw the background.
-    LCD_DrawPicture(0,0,&background);
-    for(int i=0; i<80*80; i++)
-        object->pix2[i] = 0xffff;
+//     // Draw the background.
+//     LCD_DrawPicture(0,0,&background);
+//     for(int i=0; i<80*80; i++)
+//         object->pix2[i] = 0xffff;
 
-    // Center the 19x19 ball into center of the 29x29 object.
-    // Now, the 19x19 ball has 5-pixel white borders in all directions.
-    pic_overlay(object,20,20,&o,0xffff);
+//     // Center the 19x19 ball into center of the 29x29 object.
+//     // Now, the 19x19 ball has 5-pixel white borders in all directions.
+//     pic_overlay(object,20,20,&o_piece,0xffff);
   
  
     
-    xmin = border;
-    xmax = background.width - border;
-    ymin = 0;
-    ymax = background.height - border - 20;
-    x = (xmin+xmax)/2; // Center of ball
-    y = ymin;
-    vx = 0; // Velocity components of ball
-    vy = 20;
+//     xmin = border;
+//     xmax = background.width - border;
+//     ymin = 0;
+//     ymax = background.height - border - 20;
+//     x = (xmin+xmax)/2; // Center of ball
+//     y = ymin;
+//     vx = 0; // Velocity components of ball
+//     vy = 20;
 
-    newpx = (xmax+xmin)/2; // New center of block
-    px = -1;
+//     newpx = (xmax+xmin)/2; // New center of block
+//     px = -1;
 
-    setup_tim16();
+//     get_keypress();
+//     setup_tim16();
 
-    for(;;) {
-        char key = get_keypress();
-        if (key == 'A') {
-            newpx -= 20;
-        }
-        if (key == '2') {
-            newpx += 20;
-        }
-        if (newpx - o.width/2 <= border || newpx + o.width/2 >= 240-border) {
-            newpx = x;
-        }
-        if (newpx != px) {
-            x = newpx;
-            TempPicturePtr(tmp, 80, 80);
-            pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
-            pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
-            // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
-            //         (background.height-border-paddle.height) - (y-tmp->height/2),
-            //         &paddle, 0xffff); // Draw the paddle into the image
-            LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp);
-        }
-        // if (newpx - paddle.width/2 <= border || newpx + paddle.width/2 >= 240-border)
-    //     newpx = px;
-    // if (newpx != px) {
-    //     px = newpx;
-    //     // Create a temporary object two pixels wider than the paddle.
-    //     // Copy the background into it.
-    //     // Overlay the paddle image into the center.
-    //     // Draw the result.
-    //     //
-    //     // As long as the paddle moves no more than one pixel to the left or right
-    //     // it will clear the previous parts of the paddle from the screen.
-    //     TempPicturePtr(tmp1,40,40);
-    //     pic_subset(tmp1, &background, px-tmp1->width/2, background.height-border-tmp1->height); // Copy the background
-    //     pic_overlay(tmp1, 1, 0, &ball, -1);
-    //     LCD_DrawPicture(px-tmp1->width/2, background.height-border-tmp1->height, tmp1);}
-    }
-}
+//     NVIC->ISER[0] = 1<<TIM16_IRQn;
+
+//     for(;;) {
+//         char key = get_keypress();
+//         if(key == 'A' || key == '2')
+//         {
+//             asm("cpsid i");
+//             if (key == 'A') {
+//                 newpx -= 20;
+//             }
+//             if (key == '2') {
+//                 newpx += 20;
+//             }
+//             if (newpx - o_piece.width/2 <= border || newpx + o_piece.width/2 >= 240-border) {
+//                 newpx = x;
+//             }
+//             if (newpx != x) {
+//                 x = newpx;
+//                 TempPicturePtr(tmp, 80, 80);
+//                 pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
+//                 pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
+//                 // pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
+//                 //         (background.height-border-paddle.height) - (y-tmp->height/2),
+//                 //         &paddle, 0xffff); // Draw the paddle into the image
+//                 LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp);
+//             }
+//             asm("cpsie i");
+
+//         }
+//     }
+// }
 
 // Center the 19x19 ball into center of the 29x29 object.
    // Set all pixels in the object to white.
