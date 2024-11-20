@@ -16,5 +16,6 @@ void init_wavetable(void);
 void set_freq(int chan, float f);
 void setup_dac(void);
 void init_tim6(void);
+char get_keypress(void);
 
 #endif
