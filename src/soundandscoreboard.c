@@ -411,7 +411,7 @@ int update_score(int score) {
     return updatedScore;
 }
 
-float f = 261.626; // 261.626 Hz tone  
+float f = 440.000; // 261.626 Hz tone  
 
 //plays a sound when level up
 void levelup_sound(void) {
@@ -423,52 +423,51 @@ void levelup_sound(void) {
 //============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
-int main(void) {
-    internal_clock();
-    // Initialize the display to something interesting to get started.
-    msg[0] |= font['T'];
-    msg[1] |= font['E'];
-    msg[2] |= font['T'];
-    msg[3] |= font['R'];
-    msg[4] |= font['I'];
-    msg[5] |= font['S'];
-    msg[6] |= font[' '];
-    msg[7] |= font['2'];
+// int main(void) {
+//     internal_clock();
+//     // Initialize the display to something interesting to get started.
+//     msg[0] |= font['T'];
+//     msg[1] |= font['E'];
+//     msg[2] |= font['T'];
+//     msg[3] |= font['R'];
+//     msg[4] |= font['I'];
+//     msg[5] |= font['S'];
+//     msg[6] |= font[' '];
+//     msg[7] |= font['2'];
 
-    // score = 50;
-    // print_score();
+//     // score = 50;
+//     // print_score();
 
-    enable_ports();
-    init_tim7();
-    // setup_bb();
-    // drive_bb();
-    // init_spi2();
-    // setup_dma();
-    // enable_dma();
-    init_tim15();
-    init_tim1();
+//     enable_ports();
+//     init_tim7();
+//     // setup_bb();
+//     // drive_bb();
+//     // init_spi2();
+//     // setup_dma();
+//     // enable_dma();
+//     init_tim15();
+//     init_tim1();
 
-    setup_adc();
-    init_tim2();
+//     setup_adc();
+//     init_tim2();
 
-    //showing voltage for adc
-    // for(;;) {
-    //     printfloat(2.95 * volume / 4096);
-    // }
+//     //showing voltage for adc
+//     // for(;;) {
+//     //     printfloat(2.95 * volume / 4096);
+//     // }
 
-    //dac
-    init_wavetable();
-    setup_dac();
-    set_freq(0,440.000);
-    init_tim6();
-    // game state
-    for(;;) {
-        score = 100;
-        //if line clear placed then update_score();
-        // if (score % 100 == 0) {
-        //     levelup_sound();
-        // }
-    }
+//     //dac
+//     init_wavetable();
+//     setup_dac();
+//     set_freq(0,250.000);
+//     init_tim6();
+//     // game state
+//     for(;;) {
+//         score = 100;
+//         //if line clear placed then update_score();
+//         // if (score % 100 == 0) {
+//              levelup_sound();
+//         }
+//     }
     
     // dialer();
-}
