@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "stdlib.h": "c",
-        "sound.h": "c"
+        "sound.h": "c",
+        "typeinfo": "c"
     }
 }

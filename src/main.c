@@ -22,7 +22,7 @@ void setup_tim16()
 	// Remember to set the NVIC ISER to allow the interrupt for TIM16.
 	RCC -> APB2ENR |= RCC_APB2ENR_TIM16EN;
 	TIM16 -> PSC = 48000-1;
-	TIM16 -> ARR = 1000-1;
+	TIM16 -> ARR = 500-1;
 	TIM16 -> DIER |= TIM_DIER_UIE;
 	TIM16 -> CR1 |= TIM_CR1_ARPE;
 	NVIC -> ISER[0] = 1 << TIM16_IRQn;
@@ -97,12 +97,31 @@ void pic_overlay(Picture *dst, int xoffset, int yoffset, const Picture *src, int
 			if (dx >= dst->width)
 				break;
 			unsigned short int p = src->pix2[y*src->width + x];
-			if (p != transparent)
+			if (p != transparent && p != GREEN)
 				dst->pix2[dy*dst->width + dx] = p;
 		}
 	}
 }
-
+void pic_overlay_green(Picture *dst, int xoffset, int yoffset, const Picture *src, int transparent)
+{
+	for(int y=0; y<src->height; y++) {
+		int dy = y+yoffset;
+		if (dy < 0)
+			continue;
+		if (dy >= dst->height)
+			break;
+		for(int x=0; x<src->width; x++) {
+			int dx = x+xoffset;
+			if (dx < 0)
+				continue;
+			if (dx >= dst->width)
+				break;
+			unsigned short int p = src->pix2[y*src->width + x];
+			if (p != transparent && p != MAGENTA)
+				dst->pix2[dy*dst->width + dx] = p;
+		}
+	}
+}
 // Called after a bounce, update the x,y velocity components in a
 // pseudo random way.  (+/- 1)
 void perturb(int *vx, int *vy)
@@ -139,6 +158,10 @@ extern const Picture background; // A 240x320 background image
 extern const Picture ball;
 extern const Picture o_piece; // A 19x19 purple ball with white boundaries
 extern const Picture i_piece; // A 59x5 paddle
+extern const Picture o_piece_green;
+
+int game_state[15][10] = {0};
+int block_pos[2][2] = {{4,14}, {5,14}};
 
 const int border = 20;
 int xmin; // Farthest to the left the center of the ball can go
@@ -158,9 +181,10 @@ int newpx; // New center of paddle
 // A 100x100 picture uses 20000 bytes.  You have 32768 bytes of SRAM.
 #define TempPicturePtr(name,width,height) Picture name[(width)*(height)/6+2] = { {width,height,2} }
 #define TempPicturePtr1(name,width,height) Picture name[(width)*(height)/6+2] = { {width,height,2} }
+#define TempPicturePtr2(name,width,height) Picture name[(width)*(height)/6+2] = { {width,height,2} }
 
 // Create a 29x29 object to hold the ball plus padding
-TempPicturePtr(object,80,80);
+TempPicturePtr(object,40,40);
 
 void TIM17_IRQHandler(void)
 {
@@ -195,20 +219,51 @@ void TIM16_IRQHandler(void)
 {
 	TIM16->SR &= ~TIM_SR_UIF;
 	y += vy;
-	if (y >= ymax) {
-		// The ball has hit the bottom wall.  Set velocity of ball to 0,0.
-		vy = 0;
-		score += 10;
-		levelup_sound();
-		print_score();
-	}
-	TempPicturePtr(tmp,80,80); // Create a temporary 29x29 image.
+	TempPicturePtr(tmp,40,40); // Create a temporary 29x29 image.
 	pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
 	pic_overlay(tmp, 0, 0, object, 0xffff); // Overlay the object
 	// pic_overlay(tmp, (px-paddle.width/2) - (x-tmp->width/2),
 	//         (background.height-border-paddle.height) - (y-tmp->height/2),
 	//         &paddle, 0xffff); // Draw the paddle into the image
 	LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp); // Re-draw it to the screen
+	if (y >= ymax) {
+		// The ball has hit the bottom wall.  Set velocity of ball to 0,0.
+		// vy = 0;
+		score += 10;
+		print_score();
+		TempPicturePtr2(tmp,40,40); // Create a temporary 29x29 image.
+		pic_subset(tmp, &background, x-tmp->width/2, y-tmp->height/2); // Copy the background
+		pic_overlay_green(tmp, 0, 0, &o_piece_green, 0xffff); // Overlay the object
+		LCD_DrawPicture(x-tmp->width/2,y-tmp->height/2, tmp); // Re-draw it to the screen
+		
+		//game state
+		game_state[block_pos[0][1]][block_pos[0][0]] = 1;
+		game_state[block_pos[0][1]-1][block_pos[0][0]] = 1;
+		game_state[block_pos[1][1]][block_pos[1][0]] = 1;
+		game_state[block_pos[1][1]-1][block_pos[1][0]] = 1;
+
+		int clear = check_clear(game_state);
+		if(clear == 1) {
+			score += 100;
+			print_score();
+			levelup_sound();
+			LCD_DrawPicture(0,0,&background);
+		}
+		x = 120;
+		y = 0;
+		block_pos[0][0] = 4;
+		block_pos[0][1] = 14;
+		block_pos[1][0] = 5;
+		block_pos[1][1] = 14;
+
+	}
+
+	if(score % 100) {
+		levelup_sound();
+	}
+	
+	block_pos[0][1] -= 1;
+	block_pos[1][1] -= 1;
 }
 
 //sound globals
@@ -221,6 +276,30 @@ extern const char font[];
 void print(const char str[]);
 // Print a floating-point value.
 void printfloat(float f);
+
+int check_clear(int game_state[15][10]) {
+	int clear = 1;
+	for(int y = 0; y < 15; y++) {
+		clear = 1;
+		for(int x = 0; x < 10; x++) {
+			if(game_state[y][x] == 0) {
+				clear = 0;
+				break;
+			}
+		}
+		if(clear) {
+			break;
+		}
+	}
+	if(clear) {
+		for(int y = 0; y < 15; y++) {
+			for(int x = 0; x < 10; x++) {
+				game_state[y][x] = 0;
+			}
+		}
+	}
+	return clear;
+}
 
 int main(void)
 {
@@ -256,16 +335,16 @@ int main(void)
     setup_dac();
     init_tim6();
 
-	set_freq(0, 440);
+	set_freq(0, 0);
 
 	// Draw the background.
 	LCD_DrawPicture(0,0,&background);
-	for(int i=0; i<80*80; i++)
+	for(int i=0; i<40*40; i++)
 		object->pix2[i] = 0xffff;
 
 	// Center the 19x19 ball into center of the 29x29 object.
 	// Now, the 19x19 ball has 5-pixel white borders in all directions.
-	pic_overlay(object,20,20,&o_piece,0xffff);
+	pic_overlay(object,15,15,&o_piece,0xffff);
   
 	xmin = border;
 	xmax = background.width - border;
@@ -276,9 +355,8 @@ int main(void)
 	vy = 20;
 
 	newpx = (xmax+xmin)/2; // New center of block
-	px = -1;
 
-	//get_keypress();
+	get_keypress();
 	setup_tim16();
 
 	//setup_tim17();
@@ -288,6 +366,7 @@ int main(void)
 	score = 0;
 
 	for(;;) {
+
 		char key = get_keypress();
 		if(key == 'A' || key == '2')
 		{
@@ -302,6 +381,14 @@ int main(void)
 				newpx = x;
 			}
 			if (newpx != x) {
+				if(newpx > x) {
+					block_pos[0][0] += 1;
+					block_pos[1][0] += 1;
+				}
+				else {
+					block_pos[0][0] -= 1;
+					block_pos[1][0] -= 1;
+				}
 				x = newpx;
 				// TempPicturePtr1(tmp1, 80, 80);
 				// pic_subset(tmp1, &background, x-tmp1->width/2, y-tmp1->height/2); // Copy the background
@@ -309,8 +396,8 @@ int main(void)
 				// LCD_DrawPicture(x-tmp1->width/2,y-tmp1->height/2, tmp1);
 			}
 			asm("cpsie i");
-
-	}
+		}
+		
 	}
 }
 

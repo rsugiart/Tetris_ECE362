@@ -405,12 +405,14 @@ void print_score(void) {
     print(newscore);
 }
 
-float f = 50; // 261.626 Hz tone  
+float f = 200; // 261.626 Hz tone  
 
 //plays a sound when level up
 void levelup_sound(void) {
-    f += 20;    
+    f += 100;    
     set_freq(0, f); //set frequency
+    nano_wait(10000000);
+    set_freq(0,0);
 }
 
 //============================================================================
