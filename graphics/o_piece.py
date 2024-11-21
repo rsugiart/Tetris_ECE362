@@ -1,6 +1,6 @@
-width = 40
+width = 80
 height = 40
-name = 'o_piece_green'
+name = 'i_piece'
 
 # Initialize to zero
 arr = [ [0 for x in range(0,height)] for y in range(0,width) ]
@@ -14,7 +14,7 @@ green = 0x07E0
 # Make a checkerboard with green boundaries
 for x in range(0, width):
   for y in range(0, height):
-      arr[x][y] = green
+      arr[x][y] = red
     # if (x // 20) % 2 == 0:
     #   if (y // 20) % 2 == 0:
     #     arr[x][y] = black
@@ -27,7 +27,7 @@ for x in range(0, width):
     #     arr[x][y] = black
 
 #out = open('./graphics/o_piece.c','w')
-out = open('./o_piece_green.c','w')
+out = open('./i_piece.c','w')
 
 
 # Print out the header
