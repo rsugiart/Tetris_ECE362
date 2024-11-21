@@ -395,7 +395,7 @@ void LCD_SetWindow(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEn
     LCD_WR_DATA(0x00FF&yEnd);
 
     LCD_WriteRAM_Prepare();
-    nano_wait(1000000000);
+    // nano_wait(1000000000);
 }
 
 //===========================================================================

@@ -405,19 +405,12 @@ void print_score(void) {
     print(newscore);
 }
 
-//update score
-int update_score(int score) {
-    int updatedScore = score + 50;
-    return updatedScore;
-}
-
-float f = 440.000; // 261.626 Hz tone  
+float f = 50; // 261.626 Hz tone  
 
 //plays a sound when level up
 void levelup_sound(void) {
-        set_freq(0, f); //set frequency
-        nano_wait(1000000000);
-        set_freq(0, 0); //turn off sound
+    f += 20;    
+    set_freq(0, f); //set frequency
 }
 
 //============================================================================
